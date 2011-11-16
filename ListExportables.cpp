@@ -76,6 +76,7 @@ bool ListSymbolsVisitor::VisitFunctionDecl(FunctionDecl* decl)
     out() << "{\n";
     out() << " \"type\": \"" << typeNameFor(decl) << "\", \n";
     out() << " \"name\": " << "\"" <<  decl->getNameAsString() << "\",\n";
+    out() << " \"definition\": " << (decl->isThisDeclarationADefinition()  ? "true" : "false") << ",\n";
     printLocation(presumedLoc);
 
     out() << " \"symbols\": [";
@@ -115,6 +116,9 @@ bool ListSymbolsVisitor::VisitFunctionDecl(FunctionDecl* decl)
 
 bool ListSymbolsVisitor::VisitRecordDecl(RecordDecl* decl)
 {
+    // class declaration cannot have attributes.
+    if (!decl->isThisDeclarationADefinition())
+        return true;
     PresumedLoc presumedLoc = m_ci->getSourceManager().getPresumedLoc(decl->getLocation());
     if (isFromSystem(presumedLoc))
         return true;
@@ -122,6 +126,7 @@ bool ListSymbolsVisitor::VisitRecordDecl(RecordDecl* decl)
     out() << "{\n";
     out() << " \"type\": \"RecordDecl\", \n";
     out() << " \"name\": " << "\"" <<  decl->getNameAsString() << "\",\n";
+    out() << " \"definition\": " << (decl->isThisDeclarationADefinition()  ? "true" : "false") << ",\n";
     printLocation(presumedLoc);
 
     out() << " \"symbols\": [";
@@ -149,6 +154,7 @@ bool ListSymbolsVisitor::VisitVarDecl(VarDecl* decl)
     out() << "{\n";
     out() << " \"type\": \"VarDecl\", \n";
     out() << " \"name\": " << "\"" <<  decl->getNameAsString() << "\",\n";
+    out() << " \"definition\": " << (decl->isThisDeclarationADefinition()  ? "true" : "false") << ",\n";
     printLocation(presumedLoc);
 
     out() << " \"symbols\": [";

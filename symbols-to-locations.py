@@ -17,8 +17,16 @@ class Location:
         return self.dict["location"]
 
     @property
+    def location_with_definition(self):
+        return self.dict["location"] + [ self.definition ]
+
+    @property
     def symbols(self):
         return self.dict["symbols"]
+
+    @property
+    def definition(self):
+        return self.dict["definition"]
 
     def __eq__(self, other):
         return self.location == other.location and self.symbols == other.symbols
@@ -54,7 +62,8 @@ def to_before_exported(symbol):
     return symbol
 
 def print_symbol_to_location(sym, locs):
-    print json.dumps({"symbol": sym, "type": locs[0].symbolType, "locations": [ l.location for l in locs ]}), ","
+    print json.dumps({"symbol": sym, "type": locs[0].symbolType,
+                      "locations": [ l.location_with_definition for l in locs ]}), ","
 
 if __file__ == sys.argv[0]:
     parser = OptionParser()
@@ -76,19 +85,20 @@ if __file__ == sys.argv[0]:
         file = open(filename)
         location_map.add_from_json(json.load(file))
         file.close()
-        if options.verbose:
-            sys.stderr.write("Loaded symbols (%d/%d): %d\n" % (file_index, len(location_files), len(location_map.symbol_to_loc)))
 
-        print """{ "symbols": ["""
-        if options.filter:
-            exported_symbols = [ to_before_exported(s.strip()) for s in open(options.filter).readlines() ]
-            for symbol in exported_symbols:
-                locations = location_map.find_locations(symbol)
-                if not locations:
-                    sys.stderr.write("Location is not found: %s\n" % symbol)
-                else:
-                    print_symbol_to_location(symbol, locations)
-        else:
-            for sym, locs in location_map.symbol_to_loc.items():
-                print_symbol_to_location(sym, locs)
-        print """null ]}"""
+    if options.verbose:
+        sys.stderr.write("Loaded symbols (%d/%d): %d\n" % (file_index+1, len(location_files), len(location_map.symbol_to_loc)))
+
+    print """{ "symbols": ["""
+    if options.filter:
+        exported_symbols = [ to_before_exported(s.strip()) for s in open(options.filter).readlines() ]
+        for symbol in exported_symbols:
+            locations = location_map.find_locations(symbol)
+            if not locations:
+                sys.stderr.write("Location is not found: %s\n" % symbol)
+            else:
+                print_symbol_to_location(symbol, locations)
+    else:
+        for sym, locs in location_map.symbol_to_loc.items():
+            print_symbol_to_location(sym, locs)
+    print """null ]}"""

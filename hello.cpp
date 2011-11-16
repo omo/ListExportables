@@ -67,3 +67,9 @@ void functionWhoHasExternSee()
 int aGlobalVariable;
 int aGlobalVariableWithExtern;
 int aGlobalVariableWithExternInExternSee;
+
+class SyntaxPlayground {
+  MY_EXPORT_PRIVATE static int staticVar;
+};
+
+int SyntaxPlayground::staticVar = 0;
