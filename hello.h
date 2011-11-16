@@ -1,4 +1,6 @@
 
+#define JSC_PRIVATE_EXPORT __attribute__ ((visibility ("default")))
+
 extern int aGlobalVariableWithExtern;
 void functionWhoseDeclIsInHeader();
 
