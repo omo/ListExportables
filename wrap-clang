@@ -26,7 +26,7 @@ def make_dest_filename(input_file):
     # XXX: maybe we should pick somewhere near from output file.
     out_dir = os.environ["MY_OUT_DIR"]
     source = find_input_file(args)
-    return os.path.join(out_dir, os.path.basename(input_file) + ".locations")
+    return os.path.join(out_dir, os.path.basename(input_file) + ".l2s")
 
 def select_clang(input_file):
     if not input_file:

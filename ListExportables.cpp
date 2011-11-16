@@ -50,6 +50,22 @@ private:
     MangleContext* m_mangle;
 };
 
+static const std::string& typeNameFor(FunctionDecl* decl)
+{
+    const static std::string kCXXConstructorDecl("CXXConstructorDecl");
+    const static std::string kCXXDestructorDecl("CXXDestructorDecl");
+    const static std::string kCXXMethodDecl("CXXMethodDecl");
+    const static std::string kFunctionDecl("FunctionDecl");
+    
+    if (isa<CXXConstructorDecl>(decl))
+        return kCXXConstructorDecl;
+    if (isa<CXXDestructorDecl>(decl))
+        return kCXXDestructorDecl;
+    if (isa<CXXMethodDecl>(decl))
+        return kCXXMethodDecl;
+    return kFunctionDecl;
+}
+
 bool ListSymbolsVisitor::VisitFunctionDecl(FunctionDecl* decl)
 {
     PresumedLoc presumedLoc = m_ci->getSourceManager().getPresumedLoc(decl->getLocation());
@@ -58,7 +74,7 @@ bool ListSymbolsVisitor::VisitFunctionDecl(FunctionDecl* decl)
 
     // Should distinguish method/static method?
     out() << "{\n";
-    out() << " \"type\": \"FunctionDecl\", \n";
+    out() << " \"type\": \"" << typeNameFor(decl) << "\", \n";
     out() << " \"name\": " << "\"" <<  decl->getNameAsString() << "\",\n";
     printLocation(presumedLoc);
 
@@ -151,12 +167,12 @@ bool ListSymbolsVisitor::VisitVarDecl(VarDecl* decl)
 
 bool ListSymbolsVisitor::isFromSystem(const PresumedLoc& loc) const
 {
-    return (0 == std::string(loc.getFilename()).find("/usr/"));
+    return (0 == std::string(loc.getFilename()).find("/usr/") || (0 == strcmp(loc.getFilename(), "<built-in>")));
 }
 
 void ListSymbolsVisitor::printLocation(const PresumedLoc& loc)
 {
-    out() << " \"file\": [\"" << loc.getFilename() << "\", " << loc.getLine() << ", " << loc.getColumn() << "],\n";
+    out() << " \"location\": [\"" << loc.getFilename() << "\", " << loc.getLine() << ", " << loc.getColumn() << "],\n";
 }
 
 class ListSymbolsConsumer : public ASTConsumer {
@@ -203,7 +219,7 @@ private:
     ListSymbolsVisitor m_visitor;
 };
   
-class ListSymoblsAction : public PluginASTAction {
+class ListSymbolsAction : public PluginASTAction {
 protected:
     ASTConsumer *CreateASTConsumer(CompilerInstance &CI, llvm::StringRef) {
         return new ListSymbolsConsumer(&CI, m_filename);
@@ -224,5 +240,5 @@ private:
 
 }
 
-static FrontendPluginRegistry::Add<ListSymoblsAction>
+static FrontendPluginRegistry::Add<ListSymbolsAction>
 X("list-exp", "list exportables");
