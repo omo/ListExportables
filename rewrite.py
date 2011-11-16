@@ -63,7 +63,12 @@ def make_rewrite_line(symbol, line, filename, column):
                              "CXXMethodDecl",
                              "FunctionDecl",
                              "VarDecl" ]:
-        m = re.search(r'\S', line)
+        start = 0
+        extern_c_match = re.match(r'extern\s+"C"', line)
+        if extern_c_match:
+            start = extern_c_match.end(0)
+        pattern = re.compile(r'\S')
+        m = pattern.search(line, start)
         return line[:m.start(0)] + ("%s " % macro_name) + line[m.start(0):]
     raise Exception("Unknown valueType:%s" % symbol.valueType)
     

@@ -73,3 +73,5 @@ class SyntaxPlayground {
 };
 
 int SyntaxPlayground::staticVar = 0;
+
+extern "C" const int jscore_fastmalloc_introspection = 0;
