@@ -10,3 +10,6 @@ void functionWhoseDeclIsInExternSee();
 }
 
 extern "C" void functionWhoHasExternSee();
+
+// Forward declaration
+class GlobalClass;
