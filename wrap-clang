@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+
+import os, re, sys, subprocess
+
+clang_dir = os.environ["MY_CLANG_DIR"]
+clang   = os.path.join(clang_dir, "bin/clang")
+clangxx = os.path.join(clang_dir, "bin/clang++")
+plugin_lib = os.path.join(clang_dir, "lib/libListExportables.dylib")
+plugin_name = "list-exp"
+clang_plugin_options = ["-load", plugin_lib, "-add-plugin", plugin_name]
+
+def cleanup_args(args):
+    return args
+
+def find_input_file(args):
+    for i in args:
+        if (re.search(r'\.(cpp|c|mm|m|cc)$', i)):
+            return i
+    # Pre-compiled headers are also given.
+    for i in args:
+        if (re.search(r'\.h$', i)):
+            return i
+    return None
+
+def make_dest_filename(input_file):
+    # XXX: maybe we should pick somewhere near from output file.
+    out_dir = os.environ["MY_OUT_DIR"]
+    source = find_input_file(args)
+    return os.path.join(out_dir, os.path.basename(input_file) + ".locations")
+
+def select_clang(input_file):
+    if not input_file:
+        return clangxx # linker, precompiler
+    if (re.search(r'\.(cpp|mm|cc)$', input_file)):
+        return clangxx
+    if (re.search(r'\.(c|m)$', input_file)):
+        return clang
+    return clang
+
+
+args = cleanup_args(sys.argv[1:])
+input_file = find_input_file(args)
+todays_clang = select_clang(input_file)
+
+if (not todays_clang) or (sys.argv[-1] == "/dev/null") or (sys.argv.count('-framework')):
+    # This invocation is for path auto-detection or linking.
+    sys.exit(os.system(" ".join([todays_clang] + sys.argv[1:])))
+
+command_prefix = [todays_clang] + reduce(lambda a, x: a.append("-Xclang") or a.append(x) or a, clang_plugin_options, [])
+command_tokens = command_prefix + args
+#sys.stderr.write(repr(command_tokens) + "\n")
+proc = subprocess.Popen(command_tokens, stdout=subprocess.PIPE)
+
+dest = make_dest_filename(input_file)
+out = open(dest, "w")
+for line in proc.stdout:
+    out.write(line)
+out.close()
