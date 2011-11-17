@@ -15,7 +15,6 @@ make -C ${BUILD_DIR} ${MAKE_FLAGS}
 make -C ${BUILD_DIR}
 ${CLANGCXX} -cc1 -load ${BUILD_ROOT}/Debug+Asserts/lib/libListExportables.dylib ${PLUGIN_FLAGS} ${TESTSRC} | tee ${L2SFILE} > /dev/null
 python symbols-to-locations.py -v ${L2SFILE} | tee ${S2LFILE} > /dev/null
-#python rewrite.py --verbose --preview ${S2LFILE}
 
 cp hello.cpp hello.cpp.bak
 cp hello.h hello.h.bak
