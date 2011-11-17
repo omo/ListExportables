@@ -7,9 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// Example clang plugin which simply prints the names of all the top-level decls
-// in the input file.
-//
+// This file is based on tools/clang/examples/PrintFunctionNames/PrintFunctionNames.cpp
+// 
 //===----------------------------------------------------------------------===//
 
 #include "clang/Frontend/FrontendPluginRegistry.h"
