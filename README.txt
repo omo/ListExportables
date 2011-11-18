@@ -24,7 +24,7 @@ Build this tool:
 Running against JavaScriptCore:
 --------------------------------
 
-First use the Clang plugin to generate the possibly exported symbols.
+At first, use the Clang plugin to generate the possibly exported symbols.
 
   $ export WORK_ROOT=`pwd`
   $ export TOOL_ROOT=$WORK_ROOT/llvm/tools/clang/examples/ListExportables/
@@ -39,7 +39,7 @@ Then accumulate and filter it to find out the symbol's locations to rewrite.
   $ $TOOL_ROOT/symbols-to-locations.py -f JavaScriptCore/build/Debug/DerivedSources/JavaScriptCore/JavaScriptCore.JSVALUE64.exp \
      tmp/*.l2s > tmp/JavaScriptCore.s2l
 
-With the result of the previous step, we can run the rewriter now.
+Rewrite the code. The rewiter uses the result of the previous step.
 
   $ $TOOL_ROOT/rewrite.py tmp/JavaScriptCore.s2l
 
@@ -52,5 +52,9 @@ You can enable JS_EXPORT* macros by changing Platform.h like this.
 +#else
 +#define WTF_USE_EXPORT_MACROS 0
 +#endif
+
+Also, we need to add JS_INLINE macro to ExportMacros.h. (TODO: Put the tracking bug id here.)
+
+Finally we can build modified version of JSC.
 
   $ xcodebuild -project JavaScriptCore/JavaScriptCore.xcodeproj -configuration Debug
