@@ -36,51 +36,114 @@ class Location:
         self.dict = location_dict
 
     @property
-    def symbolType(self):
-        return self.dict["type"]
-        
-    @property
     def location(self):
         return self.dict["location"]
-
-    @property
-    def location_with_definition(self):
-        return self.dict["location"] + [ self.definition ]
 
     @property
     def symbols(self):
         return self.dict["symbols"]
 
     @property
+    def kind(self):
+        return self.dict["kind"]
+
+    @property
+    def name(self):
+        return self.dict["name"]
+
+    @property
     def definition(self):
-        return self.dict["definition"]
+        return "definition" in self.dict["options"]
+
 
     def __eq__(self, other):
         return self.location == other.location and self.symbols == other.symbols
 
 
-class LocationMap:
+class Symbol:
+    def __init__(self, name):
+        self.rewrite = None
+        self.symbol = name
+        self.locations = []
+
+    def add_location(self, loc):
+        if not self.locations.count(loc):
+            self.locations.append(loc)
+
+    @property
+    def kind(self):
+        return self.locations[0].kind
+
+    @property
+    def name(self):
+        return self.locations[0].name
+
+    @property
+    def parent(self):
+        return self.locations[0].dict.get("parent")
+
+    @property
+    def inlined(self):
+        return "inlined" in self.locations[0].dict["options"]
+
+    @property
+    def locations_to_rewrite(self):
+        if self.kind == "RecordDecl":
+            assert(len(self.locations) == 1) # The plugin sould only dump the definition, which should be single place.
+            assert(self.locations[0].definition)
+            return self.locations
+        # Prefer declaration if we have both.
+        declarations = [ c for c in self.locations if not c.definition ]
+        if declarations:
+            return declarations
+        # If there is no declaration, it should be the single definiton.
+        assert(1 == len(self.locations))
+        return self.locations
+
+    def mark_rewrite_as(self, value):
+        self.rewrite = value
+
+    def to_json(self):
+        return { "symbol": self.symbol, "name": self.name, "kind": self.kind,
+                 "rewrite": self.rewrite,
+                 "locations": [ l.location for l in self.locations_to_rewrite ] }
+
+
+class SymbolMap:
     def __init__(self):
-        self.symbol_to_loc = {}
+        self.symbols = {}
+        self.records = {}
 
-    def _location_list_for(self, sym):
-        if not self.symbol_to_loc.get(sym):
-            self.symbol_to_loc[sym] = []
-        return self.symbol_to_loc[sym]
+    def _symbol_for(self, name, loc):
+        if not self.symbols.get(name):
+            newsym = Symbol(name)
+            self.symbols[name] = newsym
+            if loc.kind == "RecordDecl":
+                # XXX: Should take care of namespace.
+                self.records[loc.name] = newsym
+        return self.symbols[name]
 
-    def add(self, loc):
-        for s in loc.symbols:
-            locations = self._location_list_for(s)
-            if not locations.count(loc):
-                locations.append(loc)
+    def _add_from_location(self, loc):
+        for name in loc.symbols:
+            self._symbol_for(name, loc).add_location(loc)
 
     def add_from_json(self, root):
         for loc in root["locations"]:
             if loc:
-                self.add(Location(loc))
+                self._add_from_location(Location(loc))
 
-    def find_locations(self, symbol):
-        return self.symbol_to_loc.get(symbol)
+    def find(self, name):
+        return self.symbols.get(name)
+
+    def mark_children(self):
+        for name, symbol in self.symbols.items():
+            if symbol.parent:
+                parent = self.records[symbol.parent]
+                if parent.rewrite == "export":
+                    if symbol.inlined:
+                        symbol.mark_rewrite_as("inline")
+                    elif symbol.rewrite == "export":
+                        symbol.mark_rewrite_as(None)
 
 
 def to_before_exported(symbol):
@@ -88,9 +151,6 @@ def to_before_exported(symbol):
         return symbol[1:]
     return symbol
 
-def print_symbol_to_location(sym, locs):
-    print json.dumps({"symbol": sym, "type": locs[0].symbolType,
-                      "locations": [ l.location_with_definition for l in locs ]}), ","
 
 if __file__ == sys.argv[0]:
     parser = OptionParser()
@@ -99,33 +159,32 @@ if __file__ == sys.argv[0]:
                       help="Print status messages to stdout")
     parser.add_option("-f", "--filter", dest="filter",
                       help="FILE contains the list of printing symbols", metavar="FILE")
-    parser.add_option("-e", "--all",
-                      action="store_true", dest="all", default=False,
-                      help="Print status messages to stdout")
     (options, args) = parser.parse_args()
 
     location_files = args
-    location_map = LocationMap()
+    symbol_map = SymbolMap()
 
     for file_index in range(0, len(location_files)):
         filename = location_files[file_index]
         file = open(filename)
-        location_map.add_from_json(json.load(file))
+        symbol_map.add_from_json(json.load(file))
         file.close()
 
     if options.verbose:
-        sys.stderr.write("Loaded symbols (%d/%d): %d\n" % (file_index+1, len(location_files), len(location_map.symbol_to_loc)))
+        sys.stderr.write("Loaded symbols (%d/%d): %d\n" % (file_index+1, len(location_files), len(symbol_map.symbols)))
 
-    print """{ "symbols": ["""
     if options.filter:
         exported_symbols = [ to_before_exported(s.strip()) for s in open(options.filter).readlines() ]
-        for symbol in exported_symbols:
-            locations = location_map.find_locations(symbol)
-            if not locations:
-                sys.stderr.write("Location is not found: %s\n" % symbol)
-            else:
-                print_symbol_to_location(symbol, locations)
+        for name in exported_symbols:
+            symbol_map.find(name).mark_rewrite_as("export")
     else:
-        for sym, locs in location_map.symbol_to_loc.items():
-            print_symbol_to_location(sym, locs)
+        for name, symbol in symbol_map.symbols.items():
+            symbol.mark_rewrite_as("noop")
+
+    symbol_map.mark_children()
+
+    print """{ "symbols": ["""
+    for name, symbol in symbol_map.symbols.items():
+        if symbol.rewrite:
+            print json.dumps(symbol.to_json()), ","
     print """null ]}"""

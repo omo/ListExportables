@@ -8,16 +8,19 @@ void functionNoForwardDecl()
 
 int functionWithForwardDecl();
 
+extern int aGlobalVariableWithTwoExterns;
+extern int aGlobalVariableWithTwoExterns;
+
 class GlobalClass {
 public:
   GlobalClass() {}
   ~GlobalClass();
 };
 
-class ClassVithVirtual {
+class ClassWithVirtual {
 public:
-  ClassVithVirtual() {}
-  virtual ~ClassVithVirtual();
+  ClassWithVirtual() {}
+  virtual ~ClassWithVirtual();
 };
 
 namespace ns {
@@ -48,7 +51,7 @@ GlobalClass::~GlobalClass()
 {
 }
 
-ClassVithVirtual::~ClassVithVirtual()
+ClassWithVirtual::~ClassWithVirtual()
 {
 }
 
@@ -66,6 +69,7 @@ void functionWhoHasExternSee()
 
 int aGlobalVariable;
 int aGlobalVariableWithExtern;
+int aGlobalVariableWithTwoExterns;
 int aGlobalVariableWithExternInExternSee;
 
 class SyntaxPlayground {
@@ -75,3 +79,30 @@ class SyntaxPlayground {
 int SyntaxPlayground::staticVar = 0;
 
 extern "C" const int jscore_fastmalloc_introspection = 0;
+
+
+namespace myns {
+
+ToBeMarkedAsExported::~ToBeMarkedAsExported()
+{
+}
+
+#if 0
+void ToBeMarkedAsExported::MethodToBeExported()
+{
+}
+#endif
+
+void ToBeMarkedAsExported::MethodToBeHidden()
+{
+}
+
+NotMarked::~NotMarked()
+{
+}
+
+void NotMarked::ButTheMethodIsMarkedToBeExported()
+{
+}
+
+}

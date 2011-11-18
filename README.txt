@@ -24,21 +24,33 @@ Build this tool:
 Running against JavaScriptCore:
 --------------------------------
 
-First the Clang plugin generate the possibly exported symbols.
+First use the Clang plugin to generate the possibly exported symbols.
 
-  $ cd ..somewhere.../WebKit/Source # Assuming you have a WebKit checkout.
-  $ mkdir -p tmp
+  $ export WORK_ROOT=`pwd`
   $ export TOOL_ROOT=$WORK_ROOT/llvm/tools/clang/examples/ListExportables/
+  $ cd ...somewhere.../WebKit/Source # Assuming you have a WebKit checkout.
+  $ mkdir -p tmp
   $ MY_OUT_DIR=`pwd`/tmp MY_CLANG_DIR=$WORK_ROOT/build/Release+Asserts/ \
     CC=$TOOL_ROOT/wrap-clang  CXX=$TOOL_ROOT/wrap-clang \
     xcodebuild -project JavaScriptCore/JavaScriptCore.xcodeproj -configuration Debug -target JavaScriptCore
 
 Then accumulate and filter it to find out the symbol's locations to rewrite.
 
-  $ $TOOL_ROOOT/symbols-to-locations.py -f JavaScriptCore/JavaScriptCore.exp tmp/*.l2s > tmp/JavaScriptCore.s2l
+  $ $TOOL_ROOT/symbols-to-locations.py -f JavaScriptCore/build/Debug/DerivedSources/JavaScriptCore/JavaScriptCore.JSVALUE64.exp \
+     tmp/*.l2s > tmp/JavaScriptCore.s2l
 
-With the result of the previous step, now we can run the rewriter.
+With the result of the previous step, we can run the rewriter now.
 
-  $ $TOOL_ROOOT/rewrite.py tmp/JavaScriptCore.s2l
+  $ $TOOL_ROOT/rewrite.py tmp/JavaScriptCore.s2l
 
+Even after the rewrite, we should be able to build it as usual.
+You can enable JS_EXPORT* macros by changing Platform.h like this.
 
+-#define WTF_USE_EXPORT_MACROS 0
++#if PLATFORM(MAC)
++#define WTF_USE_EXPORT_MACROS 1
++#else
++#define WTF_USE_EXPORT_MACROS 0
++#endif
+
+  $ xcodebuild -project JavaScriptCore/JavaScriptCore.xcodeproj -configuration Debug

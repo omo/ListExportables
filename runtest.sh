@@ -10,11 +10,16 @@ PLUGIN_FLAGS="-add-plugin list-exp"
 #PLUGIN_FLAGS="-plugin list-exp -plugin-arg-list-exp hello.symbols"
 L2SFILE=hello.l2s
 S2LFILE=hello.s2l
+EXPFILE=hello.exp
 
 make -C ${BUILD_DIR} ${MAKE_FLAGS}
 make -C ${BUILD_DIR}
 ${CLANGCXX} -cc1 -load ${BUILD_ROOT}/Debug+Asserts/lib/libListExportables.dylib ${PLUGIN_FLAGS} ${TESTSRC} | tee ${L2SFILE} > /dev/null
-python symbols-to-locations.py -v ${L2SFILE} | tee ${S2LFILE} > /dev/null
+#${CLANGCXX} -cc1 -load ${BUILD_ROOT}/Debug+Asserts/lib/libListExportables.dylib ${PLUGIN_FLAGS} ${TESTSRC} | tee ${L2SFILE} 
+#exit 0
+
+python symbols-to-locations.py -v ${L2SFILE} > /dev/null
+python symbols-to-locations.py -v ${L2SFILE} -f ${EXPFILE} | tee ${S2LFILE} > /dev/null
 
 cp hello.cpp hello.cpp.bak
 cp hello.h hello.h.bak

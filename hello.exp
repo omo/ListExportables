@@ -1,0 +1,3 @@
+__ZTTN4myns20ToBeMarkedAsExportedE
+__ZN4myns20ToBeMarkedAsExported18MethodToBeExportedEv
+__ZN4myns9NotMarked32ButTheMethodIsMarkedToBeExportedEv

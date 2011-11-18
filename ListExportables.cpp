@@ -43,13 +43,14 @@ public:
 private:
     bool isFromSystem(const PresumedLoc& loc) const;
     void printLocation(const PresumedLoc& loc);
-
+    void printOptionsFor(const std::vector<std::string>& options) const;
+    std::vector<std::string> makeOptionsFor(FunctionDecl* decl) const;
     CompilerInstance* m_ci;
     llvm::raw_fd_ostream* m_out;
     MangleContext* m_mangle;
 };
 
-static const std::string& typeNameFor(FunctionDecl* decl)
+static const std::string& kindNameFor(FunctionDecl* decl)
 {
     const static std::string kCXXConstructorDecl("CXXConstructorDecl");
     const static std::string kCXXDestructorDecl("CXXDestructorDecl");
@@ -65,6 +66,28 @@ static const std::string& typeNameFor(FunctionDecl* decl)
     return kFunctionDecl;
 }
 
+std::vector<std::string> ListSymbolsVisitor::makeOptionsFor(FunctionDecl* decl) const
+{
+    std::vector<std::string> opts;
+    if (decl->isThisDeclarationADefinition())
+        opts.push_back("definition");
+    // Why hasBody()? I don't know. See getLVForClassMember() in Decl.cpp
+    if (decl->isInlined() && decl->hasBody()) 
+        opts.push_back("inlined");
+    return opts;
+}
+
+void ListSymbolsVisitor::printOptionsFor(const std::vector<std::string>& options) const
+{
+    out() << " \"options\": [";
+    for (size_t oi = 0; oi < options.size(); ++oi) {
+        out() << "\"" << options[oi] << "\"" ;
+        if (oi + 1 != options.size())
+            out() << ", ";
+    }
+    out() << "],\n";
+}
+
 bool ListSymbolsVisitor::VisitFunctionDecl(FunctionDecl* decl)
 {
     PresumedLoc presumedLoc = m_ci->getSourceManager().getPresumedLoc(decl->getLocation());
@@ -73,9 +96,12 @@ bool ListSymbolsVisitor::VisitFunctionDecl(FunctionDecl* decl)
 
     // Should distinguish method/static method?
     out() << "{\n";
-    out() << " \"type\": \"" << typeNameFor(decl) << "\", \n";
+    out() << " \"kind\": \"" << kindNameFor(decl) << "\", \n";
     out() << " \"name\": " << "\"" <<  decl->getNameAsString() << "\",\n";
-    out() << " \"definition\": " << (decl->isThisDeclarationADefinition()  ? "true" : "false") << ",\n";
+    if (const RecordDecl* parent = dyn_cast<RecordDecl>(decl->getDeclContext()))
+        out() << " \"parent\": \"" << parent->getNameAsString() << "\",\n";
+
+    printOptionsFor(makeOptionsFor(decl));
     printLocation(presumedLoc);
 
     out() << " \"symbols\": [";
@@ -118,14 +144,19 @@ bool ListSymbolsVisitor::VisitRecordDecl(RecordDecl* decl)
     // class declaration cannot have attributes.
     if (!decl->isThisDeclarationADefinition())
         return true;
+
     PresumedLoc presumedLoc = m_ci->getSourceManager().getPresumedLoc(decl->getLocation());
     if (isFromSystem(presumedLoc))
         return true;
 
     out() << "{\n";
-    out() << " \"type\": \"RecordDecl\", \n";
+    out() << " \"kind\": \"RecordDecl\", \n";
     out() << " \"name\": " << "\"" <<  decl->getNameAsString() << "\",\n";
-    out() << " \"definition\": " << (decl->isThisDeclarationADefinition()  ? "true" : "false") << ",\n";
+
+    std::vector<std::string> options;
+    if (decl->isThisDeclarationADefinition())
+        options.push_back("definition");
+    printOptionsFor(options);
     printLocation(presumedLoc);
 
     out() << " \"symbols\": [";
@@ -151,9 +182,13 @@ bool ListSymbolsVisitor::VisitVarDecl(VarDecl* decl)
         return true;
 
     out() << "{\n";
-    out() << " \"type\": \"VarDecl\", \n";
+    out() << " \"kind\": \"VarDecl\", \n";
     out() << " \"name\": " << "\"" <<  decl->getNameAsString() << "\",\n";
-    out() << " \"definition\": " << (decl->isThisDeclarationADefinition()  ? "true" : "false") << ",\n";
+
+    std::vector<std::string> options;
+    if (decl->isThisDeclarationADefinition())
+        options.push_back("definition");
+    printOptionsFor(options);
     printLocation(presumedLoc);
 
     out() << " \"symbols\": [";
@@ -165,7 +200,6 @@ bool ListSymbolsVisitor::VisitVarDecl(VarDecl* decl)
         out() << decl->getNameAsString();
     out() << "\"";
     out() << " ]\n},\n";
-    out() << "\n";
 
     return true;
 }
