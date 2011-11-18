@@ -16,7 +16,7 @@ inline bool inlineFunction() { return true; }
 
 
 namespace myns {
-  class ToBeMarkedAsExported { // Should be markd as EXPORT
+  class MY_EXPORT_PRIVATE ToBeMarkedAsExported { // Should be markd as EXPORT
   public:
     ToBeMarkedAsExported() {}
     virtual ~ToBeMarkedAsExported();
@@ -24,6 +24,7 @@ namespace myns {
     void MethodToBeExported(); // Should NOT marked since the parent is already marked.
     void MethodToBeHidden(); // Should NOT be marked... at least for now.
     void MethodToBeHiddenInline() {} // Should be marked marked as INLINE
+    void MethodToBeHiddenSeparateInline(); // Should be marked marked as INLINE
   };
 
   class NotMarked {
@@ -31,11 +32,27 @@ namespace myns {
     NotMarked() {}
     virtual ~NotMarked();
 
-    void ButTheMethodIsMarkedToBeExported(); // Should be marked as EXPORT.
+    MY_EXPORT_PRIVATE void ButTheMethodIsMarkedToBeExported(); // Should be marked as EXPORT.
     void MethodHiddenAsUsual(); // Should NOT be marked.
     void MethodHiddenAsUsualInline() {} // Should NOT be marked
   };
+
+#if 0
+  inline void ToBeMarkedAsExported::MethodToBeHiddenSeparateInline()
+  {
+  }
+#endif
 }
+
+
+namespace myns {
+#if 1
+  inline void ToBeMarkedAsExported::MethodToBeHiddenSeparateInline()
+  {
+  }
+#endif
+}
+
 
 // Forward declaration
 class GlobalClass;

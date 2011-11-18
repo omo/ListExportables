@@ -55,6 +55,8 @@ class Location:
     def definition(self):
         return "definition" in self.dict["options"]
 
+    def __repr__(self):
+        return json.dumps(self.dict)
 
     def __eq__(self, other):
         return self.location == other.location and self.symbols == other.symbols
@@ -84,13 +86,21 @@ class Symbol:
 
     @property
     def inlined(self):
-        return "inlined" in self.locations[0].dict["options"]
+        #return "inlined" in self.locations[0].dict["options"]
+        for loc in self.locations:
+            if "inlined" in loc.dict["options"]:
+                return True
+        return False
 
     @property
     def locations_to_rewrite(self):
         if self.kind == "RecordDecl":
-            assert(len(self.locations) == 1) # The plugin sould only dump the definition, which should be single place.
+            #assert(len(self.locations) == 1) # The plugin sould only dump the definition, which should be single place.
+            if len(self.locations) != 1:
+                raise Exception("%s is duplicated(%s)" % (self.name, repr(self.locations)))
             assert(self.locations[0].definition)
+            return self.locations
+        if self.inlined: # Inline function should be always marked as MY_INLINE reagardless of definition/declaration
             return self.locations
         # Prefer declaration if we have both.
         declarations = [ c for c in self.locations if not c.definition ]
@@ -112,20 +122,34 @@ class Symbol:
 class SymbolMap:
     def __init__(self):
         self.symbols = {}
-        self.records = {}
+        self.record_symbols = {}
 
-    def _symbol_for(self, name, loc):
-        if not self.symbols.get(name):
-            newsym = Symbol(name)
-            self.symbols[name] = newsym
+    def _record_symbols_for(self, name):
+        if not self.record_symbols.get(name):
+            self.record_symbols[name] = []
+        return self.record_symbols[name]
+
+    def record_symbol_is_marked_as_export(self, name):
+        rs = self._record_symbols_for(name)
+        if not rs:
+            return False
+        for s in rs:
+            if s.rewrite == "export":
+                return True
+        return False
+
+    def _symbol_for(self, symname, loc):
+        if not self.symbols.get(symname):
+            newsym = Symbol(symname)
+            self.symbols[symname] = newsym
             if loc.kind == "RecordDecl":
-                # XXX: Should take care of namespace.
-                self.records[loc.name] = newsym
-        return self.symbols[name]
+                rs = self._record_symbols_for(loc.name)
+                rs.append(newsym)
+        return self.symbols[symname]
 
     def _add_from_location(self, loc):
-        for name in loc.symbols:
-            self._symbol_for(name, loc).add_location(loc)
+        for symname in loc.symbols:
+            self._symbol_for(symname, loc).add_location(loc)
 
     def add_from_json(self, root):
         for loc in root["locations"]:
@@ -138,8 +162,7 @@ class SymbolMap:
     def mark_children(self):
         for name, symbol in self.symbols.items():
             if symbol.parent:
-                parent = self.records[symbol.parent]
-                if parent.rewrite == "export":
+                if self.record_symbol_is_marked_as_export(symbol.parent):
                     if symbol.inlined:
                         symbol.mark_rewrite_as("inline")
                     elif symbol.rewrite == "export":
@@ -176,7 +199,8 @@ if __file__ == sys.argv[0]:
     if options.filter:
         exported_symbols = [ to_before_exported(s.strip()) for s in open(options.filter).readlines() ]
         for name in exported_symbols:
-            symbol_map.find(name).mark_rewrite_as("export")
+            symbol = symbol_map.find(name)
+            symbol.mark_rewrite_as("export")
     else:
         for name, symbol in symbol_map.symbols.items():
             symbol.mark_rewrite_as("noop")

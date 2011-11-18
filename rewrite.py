@@ -87,6 +87,10 @@ class Symbol:
                           "CXXMethodDecl",
                           "FunctionDecl",
                           "VarDecl" ]:
+            if self.rewrite_as == "inline":
+                m = re.search(r'^\s*(inline)', line)
+                if m:
+                    line = line[:m.start(1)] + line[m.end(1):]
             start = 0
             extern_c_match = re.match(r'extern\s+"C"', line)
             if extern_c_match:

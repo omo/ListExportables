@@ -211,7 +211,9 @@ bool ListSymbolsVisitor::isFromSystem(const PresumedLoc& loc) const
 
 void ListSymbolsVisitor::printLocation(const PresumedLoc& loc)
 {
-    out() << " \"location\": [\"" << loc.getFilename() << "\", " << loc.getLine() << ", " << loc.getColumn() << "],\n";
+    static char filename_buf[1024*4];
+    realpath(loc.getFilename(), filename_buf);
+    out() << " \"location\": [\"" << filename_buf << "\", " << loc.getLine() << ", " << loc.getColumn() << "],\n";
 }
 
 class ListSymbolsConsumer : public ASTConsumer {
