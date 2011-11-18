@@ -1,5 +1,6 @@
 
 #define MY_EXPORT_PRIVATE __attribute__ ((visibility ("default")))
+#define MY_INLINE inline __attribute__ ((visibility ("hidden")))
 
 extern int aGlobalVariableWithExtern;
 void functionWhoseDeclIsInHeader();
