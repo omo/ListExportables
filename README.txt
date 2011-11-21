@@ -44,17 +44,14 @@ Rewrite the code. The rewiter uses the result of the previous step.
   $ $TOOL_ROOT/rewrite.py tmp/JavaScriptCore.s2l
 
 Even after the rewrite, we should be able to build it as usual.
-You can enable JS_EXPORT* macros by changing Platform.h like this.
 
--#define WTF_USE_EXPORT_MACROS 0
-+#if PLATFORM(MAC)
-+#define WTF_USE_EXPORT_MACROS 1
-+#else
-+#define WTF_USE_EXPORT_MACROS 0
-+#endif
+WebKit patches:
+-------------------------------------
 
-Also, we need to add JS_INLINE macro to ExportMacros.h. (TODO: Put the tracking bug id here.)
+To build .exp-less JSC, you need following patches applied:
 
-Finally we can build modified version of JSC.
+ * https://bugs.webkit.org/show_bug.cgi?id=72854 to remove exp file from the build.
+ * https://bugs.webkit.org/show_bug.cgi?id=72862 to relax build validation check.
+ * https://bugs.webkit.org/show_bug.cgi?id=72853 to add missing macros.
+ * https://bugs.webkit.org/show_bug.cgi?id=72858 to fix wrong code.
 
-  $ xcodebuild -project JavaScriptCore/JavaScriptCore.xcodeproj -configuration Debug
