@@ -20,6 +20,7 @@ ${CLANGCXX} -cc1 -load ${BUILD_ROOT}/Debug+Asserts/lib/libListExportables.dylib 
 
 python symbols-to-locations.py -v ${L2SFILE} > /dev/null
 python symbols-to-locations.py -v ${L2SFILE} -f ${EXPFILE} | tee ${S2LFILE} > /dev/null
+#python symbols-to-locations.py -v ${L2SFILE} -f ${EXPFILE} | tee ${S2LFILE}
 
 cp hello.cpp hello.cpp.bak
 cp hello.h hello.h.bak

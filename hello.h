@@ -24,7 +24,7 @@ namespace myns {
     void MethodToBeExported(); // Should NOT marked since the parent is already marked.
     void MethodToBeHidden(); // Should NOT be marked... at least for now.
     void MethodToBeHiddenInline() {} // Should be marked marked as INLINE
-    void MethodToBeHiddenSeparateInline(); // Should be marked marked as INLINE
+    void MethodToBeHiddenSeparateInline(); // Should be marked as INLINE
   };
 
   class NotMarked {

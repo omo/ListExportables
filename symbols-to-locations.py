@@ -55,6 +55,14 @@ class Location:
     def definition(self):
         return "definition" in self.dict["options"]
 
+    @property
+    def annotated_as_exported(self):
+        return "exported" in self.dict["options"]
+
+    @property
+    def inlined(self):
+        return "inlined" in self.dict["options"]
+
     def __repr__(self):
         return json.dumps(self.dict)
 
@@ -86,9 +94,15 @@ class Symbol:
 
     @property
     def inlined(self):
-        #return "inlined" in self.locations[0].dict["options"]
         for loc in self.locations:
-            if "inlined" in loc.dict["options"]:
+            if loc.inlined:
+                return True
+        return False
+
+    @property
+    def annotated_as_exported(self):
+        for loc in self.locations:
+            if loc.annotated_as_exported:
                 return True
         return False
 
@@ -100,7 +114,7 @@ class Symbol:
                 raise Exception("%s is duplicated(%s)" % (self.name, repr(self.locations)))
             assert(self.locations[0].definition)
             return self.locations
-        if self.inlined: # Inline function should be always marked as MY_INLINE reagardless of definition/declaration
+        if self.inlined: # Inline functions should be always marked as MY_INLINE reagardless of definition/declaration
             return self.locations
         # Prefer declaration if we have both.
         declarations = [ c for c in self.locations if not c.definition ]
@@ -109,6 +123,10 @@ class Symbol:
         # If there is no declaration, it should be the single definiton.
         assert(1 == len(self.locations))
         return self.locations
+
+    @property
+    def should_be_exported(self):
+        return self.rewrite == "export" or self.annotated_as_exported
 
     def mark_rewrite_as(self, value):
         self.rewrite = value
@@ -129,12 +147,12 @@ class SymbolMap:
             self.record_symbols[name] = []
         return self.record_symbols[name]
 
-    def record_symbol_is_marked_as_export(self, name):
+    def record_symbol_should_be_exported(self, name):
         rs = self._record_symbols_for(name)
         if not rs:
             return False
         for s in rs:
-            if s.rewrite == "export":
+            if s.should_be_exported:
                 return True
         return False
 
@@ -162,7 +180,7 @@ class SymbolMap:
     def mark_children(self):
         for name, symbol in self.symbols.items():
             if symbol.parent:
-                if self.record_symbol_is_marked_as_export(symbol.parent):
+                if self.record_symbol_should_be_exported(symbol.parent):
                     if symbol.inlined:
                         symbol.mark_rewrite_as("inline")
                     elif symbol.rewrite == "export":

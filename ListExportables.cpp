@@ -154,8 +154,11 @@ bool ListSymbolsVisitor::VisitRecordDecl(RecordDecl* decl)
     out() << " \"name\": " << "\"" <<  decl->getNameAsString() << "\",\n";
 
     std::vector<std::string> options;
+    llvm::Optional<Visibility> vis = decl->getExplicitVisibility();
+    if (vis && *vis == DefaultVisibility)
+      options.push_back("exported");
     if (decl->isThisDeclarationADefinition())
-        options.push_back("definition");
+      options.push_back("definition");
     printOptionsFor(options);
     printLocation(presumedLoc);
 
