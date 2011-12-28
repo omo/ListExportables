@@ -33,7 +33,7 @@ import re
 from optparse import OptionParser
 
 attribue_name = "JSC_PRIVATE_EXPORT"
-skip_pattern = re.compile(r'_EXPORT|_INLINE')
+skip_pattern = re.compile(r'_EXPORT|ALWAYS_INLINE|HIDDEN_INLINE')
 
 def find_macro_name(symbol, filename):
     if 0 <= filename.find("/wtf/"):
