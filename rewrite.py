@@ -38,7 +38,7 @@ skip_pattern = re.compile(r'_EXPORT|_INLINE')
 def find_macro_name(symbol, filename):
     if 0 <= filename.find("/wtf/"):
         if symbol.rewrite_as == "inline":
-            return "WTF_INLINE"
+            return "HIDDEN_INLINE"
         else:
             return "WTF_EXPORT_PRIVATE"
     if 0 <= filename.find("/JavaScriptCore/"):
@@ -46,7 +46,7 @@ def find_macro_name(symbol, filename):
             return "JS_EXPORTDATA"
         else:
             if symbol.rewrite_as == "inline":
-                return "JS_INLINE"
+                return "HIDDEN_INLINE"
             else:
                 return "JS_EXPORT_PRIVATE"
     # For ease to debug
@@ -88,7 +88,7 @@ class Symbol:
                           "FunctionDecl",
                           "VarDecl" ]:
             if self.rewrite_as == "inline":
-                m = re.search(r'^\s*(inline)', line)
+                m = re.search(r'^\s*(inline\s*)', line)
                 if m:
                     line = line[:m.start(1)] + line[m.end(1):]
             start = 0
